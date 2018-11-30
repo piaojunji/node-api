@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var async = require('async');
 var MongoClient = require('mongodb').MongoClient;
+var ObjectId = require('mongodb').ObjectId;
 var url = 'mongodb://127.0.0.1:27017';
 var app = express();
 
@@ -16,7 +17,7 @@ app.use(function (req, res, next) {
     next();
 })
 
-//登录的请求   localhost:3000/api/login
+//登录请求   localhost:3000/api/login
 app.post('/api/login', function (req, res) {
     var username = req.body.username;
     var password = req.body.password;
@@ -43,7 +44,10 @@ app.post('/api/login', function (req, res) {
                 results.code = 0;
                 results.msg = '登录成功';
                 results.data = {
-                    nickname: data[0].nickname
+                    nickname: data[0].nickname,
+                    username: data[0].username,
+                    isAdmin: data[0].isAdmin,
+                    _id: data[0]._id,
                 }
             }
             client.close();
@@ -52,7 +56,7 @@ app.post('/api/login', function (req, res) {
     })
 });
 
-//注册的请求
+//注册请求
 app.post('/api/register', function (req, res) {
     var name = req.body.username;
     var pwd = req.body.password;
@@ -116,7 +120,7 @@ app.post('/api/register', function (req, res) {
     })
 })
 
-//用户列表
+//获取用户列表
 app.get('/api/user/list', function (req, res) {
     var page = parseInt(req.query.page);
     var pageSize = parseInt(req.query.pageSize);
@@ -172,4 +176,65 @@ app.get('/api/user/list', function (req, res) {
     })
 })
 
+//删除操作
+app.get('/api/user/delete', function (req, res) {
+    var username = req.query.username;
+    var results = {};
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+        if (err) {
+            results.code = -1;
+            results.msg = '数据库连接失败';
+            res.json(results);
+            return;
+        }
+        var db = client.db('project');
+        db.collection('user').deleteOne({
+            username: username
+        }, function (err) {
+            if (err) {
+                //删除失败
+                results.code = -1;
+                results.msg = '删除失败';
+            } else {
+                //删除成功
+                results.code = 0;
+                results.msg = '删除成功';
+            }
+            client.close();
+            res.json(results);
+        })
+    })
+})
+
+//搜索操作
+app.get('/api/user/search', function (req, res) {
+    var name = req.query.name;
+    var filter = new RegExp(name);
+    var results = {}
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+        if (err) {
+            results.code = -1;
+            results.msg = '数据库连接失败';
+            res.json(results);
+            return;
+        }
+        var db = client.db('project');
+        db.collection('user').find({
+            nickname: filter
+        }).toArray(function (err, data) {
+            if (err) {
+                results.code = -1;
+                results.msg = '查询失败';
+            } else {
+                results.code = 0;
+                results.msg = '查询成功';
+                results.data = {
+                    list: data
+                }
+            }
+            client.close()
+            res.json(results);
+        })
+    })
+})
 app.listen(3000);
