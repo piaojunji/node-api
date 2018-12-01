@@ -17,6 +17,8 @@ app.use(function (req, res, next) {
     next();
 })
 
+/* ===================================登录注册================================== */
+
 //登录请求   localhost:3000/api/login
 app.post('/api/login', function (req, res) {
     var username = req.body.username;
@@ -120,6 +122,8 @@ app.post('/api/register', function (req, res) {
     })
 })
 
+/* ===================================用户管理================================== */
+
 //获取用户列表
 app.get('/api/user/list', function (req, res) {
     var page = parseInt(req.query.page);
@@ -176,7 +180,7 @@ app.get('/api/user/list', function (req, res) {
     })
 })
 
-//删除操作
+//删除用户信息
 app.get('/api/user/delete', function (req, res) {
     var username = req.query.username;
     var results = {};
@@ -237,4 +241,98 @@ app.get('/api/user/search', function (req, res) {
         })
     })
 })
+
+/* ===================================品牌管理================================== */
+
+//获取品牌信息
+app.get('/api/brand/list', function (req, res) {
+    var results = {};
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+        if (err) {
+            results.code = -1;
+            results.msg = '数据库连接失败';
+            res.json(results);
+            return;
+        }
+        var db = client.db('project');
+        db.collection('brand').find().toArray(function (err, data) {
+            if (err) {
+                //查询失败
+                results.code = -1;
+                results.msg = '查询失败';
+            } else {
+                //查询成功
+                results.code = 0;
+                results.msg = '查询成功';
+                results.data = {
+                    list: data
+                }
+            }
+            client.close();
+            res.json(results);
+        })
+    })
+})
+
+//添加品牌信息
+app.get('/api/brand/add', function (req, res) {
+    var brandLogo = req.query.brandLogo;
+    var brandName = req.query.brandName;
+    var results = {};
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+        if (err) {
+            results.code = -1;
+            results.msg = '数据库连接失败';
+            res.json(results);
+            return;
+        }
+        var db = client.db('project');
+        db.collection('brand').insertOne({
+            brandLogo: brandLogo,
+            brandName: brandName
+        }), function (err) {
+            if (err) {
+                results.code = -1;
+                results.msg = '添加失败';
+            } else {
+                results.code = 0;
+                results.msg = '添加成功';
+            }
+            client.close()
+            res.json(results);
+        }
+    })
+})
+
+//删除品牌信息
+app.get('/api/brand/delete', function (req, res) {
+    var brandName = req.query.brandName;
+    var results = {};
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, client) {
+        if (err) {
+            results.code = -1;
+            results.msg = '数据库连接失败';
+            res.json(results);
+            return;
+        }
+        var db = client.db('project');
+        db.collection('brand').deleteOne({
+            brandName: brandName
+        }, function (err) {
+            if (err) {
+                //删除失败
+                results.code = -1;
+                results.msg = '删除失败';
+            } else {
+                //删除成功
+                results.code = 0;
+                results.msg = '删除成功';
+            }
+            client.close();
+            res.json(results);
+        })
+    })
+})
+
+
 app.listen(3000);
